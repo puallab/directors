@@ -6,9 +6,8 @@ import java.util.List;
 
 import com.directors.domain.common.BaseEntity;
 import com.directors.domain.question.Question;
+import com.directors.domain.schedule.exception.InvalidMeetingRequest;
 import com.directors.domain.user.User;
-import com.directors.infrastructure.exception.ExceptionCode;
-import com.directors.infrastructure.exception.schedule.InvalidMeetingRequest;
 
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Entity;
@@ -58,7 +57,7 @@ public class Schedule extends BaseEntity {
 
 	public void checkChangeableScheduleTime() {
 		if (this.status == ScheduleStatus.CLOSED) {
-			throw new InvalidMeetingRequest(ExceptionCode.ClosedSchedule, startTime, user.getId());
+			throw new InvalidMeetingRequest(InvalidMeetingRequest.CLOSED, startTime, user.getId());
 		}
 	}
 

@@ -8,17 +8,16 @@ import org.springframework.stereotype.Service;
 import com.directors.domain.question.Question;
 import com.directors.domain.question.QuestionRepository;
 import com.directors.domain.question.QuestionStatus;
+import com.directors.domain.question.exception.QuestionDuplicateException;
+import com.directors.domain.question.exception.QuestionNotFoundException;
 import com.directors.domain.schedule.Schedule;
 import com.directors.domain.schedule.ScheduleRepository;
+import com.directors.domain.schedule.exception.InvalidMeetingRequest;
 import com.directors.domain.specialty.SpecialtyProperty;
 import com.directors.domain.user.User;
 import com.directors.domain.user.UserRepository;
 import com.directors.domain.user.UserStatus;
 import com.directors.domain.user.exception.NoSuchUserException;
-import com.directors.infrastructure.exception.ExceptionCode;
-import com.directors.infrastructure.exception.question.QuestionDuplicateException;
-import com.directors.infrastructure.exception.question.QuestionNotFoundException;
-import com.directors.infrastructure.exception.schedule.InvalidMeetingRequest;
 import com.directors.presentation.question.request.CreateQuestionRequest;
 import com.directors.presentation.question.request.DeclineQuestionRequest;
 import com.directors.presentation.question.request.EditQuestionRequest;
@@ -59,7 +58,7 @@ public class QuestionService {
 			request.getDirectorId());
 		// 동일한 디렉터에게 질문 불가능.
 		if (isExists) {
-			throw new QuestionDuplicateException(ExceptionCode.QuestionDuplicated, questionerId);
+			throw new QuestionDuplicateException(QuestionDuplicateException.DUPLICATED, questionerId);
 		}
 
 		User director = getUserById(request.getDirectorId());
@@ -153,7 +152,7 @@ public class QuestionService {
 
 	private Schedule validateTime(LocalDateTime startTime, String userId) {
 		Schedule schedule = scheduleRepository.findByStartTimeAndUserId(startTime, userId)
-			.orElseThrow(() -> new InvalidMeetingRequest(ExceptionCode.InvalidMeetingTime, startTime, userId));
+			.orElseThrow(() -> new InvalidMeetingRequest(InvalidMeetingRequest.CLOSED, startTime, userId));
 
 		schedule.checkChangeableScheduleTime();
 		return schedule;
@@ -166,6 +165,6 @@ public class QuestionService {
 
 	private Question getQuestionById(Long questionId) {
 		return questionRepository.findById(questionId)
-			.orElseThrow(() -> new QuestionNotFoundException(ExceptionCode.QuestionNotFound, questionId));
+			.orElseThrow(() -> new QuestionNotFoundException(QuestionNotFoundException.NOTFOUND, questionId));
 	}
 }

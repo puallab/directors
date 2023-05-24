@@ -16,9 +16,17 @@ import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExcep
 
 import com.directors.domain.feedback.exception.CannotCreateFeedbackException;
 import com.directors.domain.feedback.exception.FeedbackNotFoundException;
+import com.directors.domain.question.exception.CannotDecideQuestionException;
+import com.directors.domain.question.exception.InvalidQuestionStatusException;
+import com.directors.domain.question.exception.QuestionDuplicateException;
+import com.directors.domain.question.exception.QuestionNotFoundException;
 import com.directors.domain.region.exception.RegionNotFoundException;
 import com.directors.domain.room.exception.CannotCreateRoomException;
 import com.directors.domain.room.exception.RoomNotFoundException;
+import com.directors.domain.schedule.exception.ClosedScheduleException;
+import com.directors.domain.schedule.exception.InvalidChangeScheduleException;
+import com.directors.domain.schedule.exception.InvalidMeetingRequest;
+import com.directors.domain.schedule.exception.InvalidMeetingTimeException;
 import com.directors.domain.specialty.exception.NoSuchSpecialtyException;
 import com.directors.domain.user.exception.AuthenticationFailedException;
 import com.directors.domain.user.exception.DuplicateIdException;
@@ -27,14 +35,6 @@ import com.directors.domain.user.exception.NotEnoughRewardException;
 import com.directors.domain.user.exception.UserRegionNotFoundException;
 import com.directors.infrastructure.exception.api.RenewApiKeyException;
 import com.directors.infrastructure.exception.common.EntityNotFoundException;
-import com.directors.infrastructure.exception.question.CannotDecideQuestionException;
-import com.directors.infrastructure.exception.question.InvalidQuestionStatusException;
-import com.directors.infrastructure.exception.question.QuestionDuplicateException;
-import com.directors.infrastructure.exception.question.QuestionNotFoundException;
-import com.directors.infrastructure.exception.schedule.ClosedScheduleException;
-import com.directors.infrastructure.exception.schedule.InvalidChangeScheduleException;
-import com.directors.infrastructure.exception.schedule.InvalidMeetingRequest;
-import com.directors.infrastructure.exception.schedule.InvalidMeetingTimeException;
 
 import io.jsonwebtoken.JwtException;
 import lombok.Getter;
@@ -106,11 +106,12 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
 		return new ErrorMessage(ex.getMessage());
 	}
 
+	@ResponseStatus(HttpStatus.CONFLICT)
 	@ExceptionHandler(InvalidMeetingRequest.class)
-	public ResponseEntity<?> invalidMeetingException(InvalidMeetingRequest ex) {
+	public ErrorMessage invalidMeetingException(InvalidMeetingRequest ex) {
 		log.info("{} occurred, userId = {}, startTime = {}", ex.getMessage(), ex.getUserId(),
 			ex.getStartTime());
-		return new ResponseEntity<>(new ErrorMessage(ex.getMessage()), ex.getStatusCode());
+		return new ErrorMessage(ex.getMessage());
 	}
 
 	@ResponseStatus(HttpStatus.SERVICE_UNAVAILABLE)
@@ -139,23 +140,26 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
 		return new ErrorMessage("잠시 후 다시 시도해주세요");
 	}
 
+	@ResponseStatus(HttpStatus.NOT_FOUND)
 	@ExceptionHandler(QuestionNotFoundException.class)
-	public ResponseEntity<?> questionNotFoundException(QuestionNotFoundException ex) {
+	public ErrorMessage questionNotFoundException(QuestionNotFoundException ex) {
 		log.info("QuestionNotFoundException. questionId = {}", ex.getQuestionId());
-		return new ResponseEntity<>(new ErrorMessage(ex.getMessage()), ex.getStatusCode());
+		return new ErrorMessage(ex.getMessage());
 	}
 
+	@ResponseStatus(HttpStatus.FORBIDDEN)
 	@ExceptionHandler(InvalidQuestionStatusException.class)
-	public ResponseEntity<?> invalidQuestionStatusException(InvalidQuestionStatusException ex) {
+	public ErrorMessage invalidQuestionStatusException(InvalidQuestionStatusException ex) {
 		log.info("InvalidQuestionStatusException occurred. questionId = {}, questionStatus = {}", ex.getQuestionId(),
 			ex.getQuestionStatus());
-		return new ResponseEntity<>(new ErrorMessage(ex.getMessage()), ex.getStatusCode());
+		return new ErrorMessage(ex.getMessage());
 	}
 
+	@ResponseStatus(HttpStatus.CONFLICT)
 	@ExceptionHandler(QuestionDuplicateException.class)
-	public ResponseEntity<?> questionDuplicateException(QuestionDuplicateException ex) {
+	public ErrorMessage questionDuplicateException(QuestionDuplicateException ex) {
 		log.info("questionDuplicateException occurred. questionerId = {}", ex.getQuestionerId());
-		return new ResponseEntity<>(new ErrorMessage(ex.getMessage()), ex.getStatusCode());
+		return new ErrorMessage(ex.getMessage());
 	}
 
 	@ResponseStatus(HttpStatus.NOT_FOUND)
@@ -222,10 +226,11 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
 		return new ErrorMessage(e.getMessage());
 	}
 
+	@ResponseStatus(HttpStatus.CONFLICT)
 	@ExceptionHandler(CannotDecideQuestionException.class)
-	public ResponseEntity<?> cannotDecideQuestionException(CannotDecideQuestionException e) {
+	public ErrorMessage cannotDecideQuestionException(CannotDecideQuestionException e) {
 		log.info("Can not decide question exception, questionId = {}", e.questionId);
-		return new ResponseEntity<>(new ErrorMessage(e.getMessage()), e.getStatusCode());
+		return new ErrorMessage(e.getMessage());
 	}
 
 	@ResponseStatus(HttpStatus.CONFLICT)
