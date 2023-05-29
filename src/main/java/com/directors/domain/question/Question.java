@@ -57,9 +57,11 @@ public class Question extends BaseEntity {
 
 	@Enumerated(EnumType.STRING)
 	private SpecialtyProperty category;
+
 	@ManyToOne(fetch = FetchType.LAZY)
 	@JoinColumn(name = "schedule_id", referencedColumnName = "id")
 	private Schedule schedule;
+
 	private String comment;
 
 	public void editQuestion(String title, String content) {
@@ -117,16 +119,26 @@ public class Question extends BaseEntity {
 	}
 
 	public void decline(String directorId, String deniedComment) {
+		//거절 가능한상태인지
+		checkUneditableStatus();
+
 		canDecideQuestion(directorId);
 
 		this.comment = deniedComment;
 		this.status = QuestionStatus.COMPLETE;
+
+		this.questioner.addReword();
 	}
 
 	public void accept(String directorId) {
+		checkUneditableStatus();
+
 		canDecideQuestion(directorId);
+
 		validateStartTime();
 		this.status = QuestionStatus.CHATTING;
+
+		schedule.closeSchedule();
 	}
 
 	private void canDecideQuestion(String directorId) {
@@ -148,12 +160,18 @@ public class Question extends BaseEntity {
 		}
 	}
 
-	public void mettingCompleteChecking(String userId) {
+	public void meetingComplete(String userId) {
 		canFinishedQuestionStatus();
-		checkComplete(userId);
+		updateCompleteFlag(userId);
+
+		if (isFinishedQuestion()) {
+			changeQuestionStatusToComplete();
+
+			director.addReword();
+		}
 	}
 
-	private void checkComplete(String userId) {
+	private void updateCompleteFlag(String userId) {
 		if (this.questioner.getId().equals(userId)) {
 			questionCheck = true;
 			return;

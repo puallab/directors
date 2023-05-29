@@ -13,11 +13,11 @@ import com.directors.domain.question.exception.QuestionNotFoundException;
 import com.directors.domain.schedule.Schedule;
 import com.directors.domain.schedule.ScheduleRepository;
 import com.directors.domain.schedule.exception.InvalidMeetingRequest;
-import com.directors.domain.specialty.SpecialtyProperty;
 import com.directors.domain.user.User;
 import com.directors.domain.user.UserRepository;
 import com.directors.domain.user.UserStatus;
 import com.directors.domain.user.exception.NoSuchUserException;
+import com.directors.infrastructure.jpa.question.QuestionSearchCondition;
 import com.directors.presentation.question.request.CreateQuestionRequest;
 import com.directors.presentation.question.request.DeclineQuestionRequest;
 import com.directors.presentation.question.request.EditQuestionRequest;
@@ -34,6 +34,8 @@ public class QuestionService {
 	private final QuestionRepository questionRepository;
 	private final ScheduleRepository scheduleRepository;
 	private final UserRepository userRepository;
+
+	private static final String DECLINE_DEFAULT_MESSAGE = "다른 사용자의 질문이 채택되었습니다.";
 
 	public List<SentQuestionResponse> getSendList(String questionerID) {
 		List<Question> sentQuestions = questionRepository.findByQuestionerId(questionerID);
@@ -54,9 +56,14 @@ public class QuestionService {
 	public void create(CreateQuestionRequest request, String questionerId) {
 		//시간이 올바른지 확인, userId로부터 schedule 가져오기.
 		Schedule schedule = validateTime(request.getStartTime(), request.getDirectorId());
-		boolean isExists = questionRepository.existsByQuestionerIdAndDirectorId(questionerId,
-			request.getDirectorId());
-		// 동일한 디렉터에게 질문 불가능.
+
+		//동일한 디렉터에게 WAITTING 상태의 질문이 있다면 질문 불가능
+		boolean isExists = questionRepository.existsQuestion(
+			QuestionSearchCondition.builder()
+				.QuestionerId(questionerId)
+				.directorId(request.getDirectorId())
+				.status(QuestionStatus.WAITING)
+				.build());
 		if (isExists) {
 			throw new QuestionDuplicateException(QuestionDuplicateException.DUPLICATED, questionerId);
 		}
@@ -66,17 +73,7 @@ public class QuestionService {
 
 		questioner.paymentReward();
 
-		Question question = Question.builder()
-			.title(request.getTitle())
-			.content(request.getContent())
-			.status(QuestionStatus.WAITING)
-			.questionCheck(false)
-			.directorCheck(false)
-			.questioner(questioner)
-			.director(director)
-			.category(SpecialtyProperty.fromValue(request.getCategory()))
-			.schedule(schedule)
-			.build();
+		Question question = request.toQuestion(questioner, director, schedule);
 
 		questionRepository.save(question);
 	}
@@ -107,47 +104,37 @@ public class QuestionService {
 	}
 
 	@Transactional
-	public void decline(Long questionId, String userId, DeclineQuestionRequest declineQuestionRequest) {
+	public void decline(Long questionId, String directorId, DeclineQuestionRequest declineQuestionRequest) {
 		Question question = getQuestionById(questionId);
 
-		//Waitting 상태의 질문만 거절 가능
-		question.checkUneditableStatus();
-
-		question.decline(userId, declineQuestionRequest.getComment());
-
-		//질문자 리워드 증가.
-		User questioner = question.getQuestioner();
-		questioner.addReword();
-
+		question.decline(directorId, declineQuestionRequest.getComment());
 	}
 
 	@Transactional
-	public void accept(Long questionId, String userId) {
+	public void accept(Long questionId, String directorId) {
+
 		Question question = getQuestionById(questionId);
-		question.checkUneditableStatus();
 
-		question.accept(userId);
+		question.accept(directorId);
 
-		//schedule close 처리
-		Schedule schedule = question.getSchedule();
-		schedule.closeSchedule();
+		//같은 시간에 들어온 질문 중 watting인거 모두 decline
+		List<Question> questions = questionRepository.searchQuestion(
+			QuestionSearchCondition.builder()
+				.directorId(directorId)
+				.startTime(question.getSchedule().getStartTime())
+				.status(QuestionStatus.WAITING)
+				.build());
+
+		questions.stream().forEach(each -> {
+			each.decline(directorId, DECLINE_DEFAULT_MESSAGE);
+		});
 	}
 
 	@Transactional
 	public void complete(Long questionId, String userId) {
 		Question question = getQuestionById(questionId);
-		question.mettingCompleteChecking(userId);
 
-		boolean isFinish = question.isFinishedQuestion();
-		if (isFinish) {
-
-			question.changeQuestionStatusToComplete();
-
-			//디렉터 리워드 증가
-			User director = question.getDirector();
-			director.addReword();
-		}
-
+		question.meetingComplete(userId);
 	}
 
 	private Schedule validateTime(LocalDateTime startTime, String userId) {

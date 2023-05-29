@@ -1,8 +1,9 @@
 package com.directors.domain.question;
 
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+
+import com.directors.infrastructure.jpa.question.QuestionSearchCondition;
 
 public interface QuestionRepository {
 
@@ -14,8 +15,8 @@ public interface QuestionRepository {
 
 	Optional<Question> findById(Long id);
 
-	boolean existsByQuestionerIdAndDirectorId(String questionerId, String directorId);
+	boolean existsQuestion(QuestionSearchCondition questionSearchCondition);
 
-	boolean existsByDirectorIdAndStartTimeAndStatus(String directorId, LocalDateTime startTime,
-		QuestionStatus status);
+	List<Question> searchQuestion(QuestionSearchCondition condition);
+
 }

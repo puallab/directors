@@ -12,10 +12,11 @@ import com.directors.domain.question.QuestionStatus;
 import com.directors.domain.schedule.Schedule;
 import com.directors.domain.schedule.ScheduleRepository;
 import com.directors.domain.schedule.ScheduleStatus;
+import com.directors.domain.schedule.exception.InvalidChangeScheduleException;
 import com.directors.domain.user.User;
 import com.directors.domain.user.UserRepository;
 import com.directors.domain.user.exception.NoSuchUserException;
-import com.directors.infrastructure.exception.schedule.InvalidChangeScheduleException;
+import com.directors.infrastructure.jpa.question.QuestionSearchCondition;
 
 import lombok.RequiredArgsConstructor;
 
@@ -75,12 +76,16 @@ public class ScheduleService {
 	}
 
 	private void checkQuestionForChangeSchedule(String userId, LocalDateTime startTime, QuestionStatus status) {
-		boolean existsChattingQuestion = questionRepository.existsByDirectorIdAndStartTimeAndStatus(userId,
-			startTime,
-			status);
+		boolean existsChattingQuestion = questionRepository.existsQuestion(
+			QuestionSearchCondition.builder()
+				.directorId(userId)
+				.startTime(startTime)
+				.status(status)
+				.build());
 
 		if (existsChattingQuestion) {
-			throw new InvalidChangeScheduleException(startTime, status);
+			throw new InvalidChangeScheduleException(InvalidChangeScheduleException.INVALID_CHANGE, startTime, status);
 		}
+
 	}
 }

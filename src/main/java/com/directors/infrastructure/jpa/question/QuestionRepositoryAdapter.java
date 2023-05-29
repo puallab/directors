@@ -11,6 +11,7 @@ import org.springframework.stereotype.Repository;
 import com.directors.domain.question.Question;
 import com.directors.domain.question.QuestionRepository;
 import com.directors.domain.question.QuestionStatus;
+import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 
 import lombok.RequiredArgsConstructor;
@@ -42,20 +43,47 @@ public class QuestionRepositoryAdapter implements QuestionRepository {
 	}
 
 	@Override
-	public boolean existsByQuestionerIdAndDirectorId(String questionerId, String directorId) {
-		return jpaQuestionRepository.existsByQuestionerIdAndDirectorId(questionerId, directorId);
+	public List<Question> searchQuestion(QuestionSearchCondition condition) {
+		List<Question> list = queryFactory
+			.select(question)
+			.from(question)
+			.where(
+				eqDirectorId(condition.getDirectorId()),
+				eqQuestionerId(condition.getQuestionerId()),
+				eqStartTime(condition.getStartTime()),
+				eqStatus(condition.getStatus()))
+			.fetch();
+		return list;
 	}
 
 	@Override
-	public boolean existsByDirectorIdAndStartTimeAndStatus(String directorId, LocalDateTime startTime,
-		QuestionStatus status) {
+	public boolean existsQuestion(QuestionSearchCondition condition) {
 		Integer fetchOne = queryFactory
 			.selectOne()
 			.from(question)
-			.where(question.director.id.eq(directorId), question.schedule.startTime.eq(startTime),
-				question.status.eq(status))
+			.where(
+				eqDirectorId(condition.getDirectorId()),
+				eqQuestionerId(condition.getQuestionerId()),
+				eqStartTime(condition.getStartTime()),
+				eqStatus(condition.getStatus()))
 			.fetchFirst();
 
 		return fetchOne != null;
+	}
+
+	private BooleanExpression eqQuestionerId(String questionerId) {
+		return questionerId == null ? null : question.questioner.id.eq(questionerId);
+	}
+
+	private BooleanExpression eqDirectorId(String directorId) {
+		return directorId == null ? null : question.director.id.eq(directorId);
+	}
+
+	private BooleanExpression eqStatus(QuestionStatus status) {
+		return status == null ? null : question.status.eq(status);
+	}
+
+	private BooleanExpression eqStartTime(LocalDateTime startTime) {
+		return startTime == null ? null : question.schedule.startTime.eq(startTime);
 	}
 }
