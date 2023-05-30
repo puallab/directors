@@ -1,6 +1,7 @@
 package com.directors.infrastructure.jpa.question;
 
 import static com.directors.domain.question.QQuestion.*;
+import static com.directors.domain.schedule.QSchedule.*;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -44,23 +45,25 @@ public class QuestionRepositoryAdapter implements QuestionRepository {
 
 	@Override
 	public List<Question> searchQuestion(QuestionSearchCondition condition) {
-		List<Question> list = queryFactory
+		return queryFactory
 			.select(question)
 			.from(question)
+			.leftJoin(question.schedule, schedule).fetchJoin()
 			.where(
 				eqDirectorId(condition.getDirectorId()),
 				eqQuestionerId(condition.getQuestionerId()),
 				eqStartTime(condition.getStartTime()),
 				eqStatus(condition.getStatus()))
 			.fetch();
-		return list;
 	}
 
 	@Override
 	public boolean existsQuestion(QuestionSearchCondition condition) {
+
 		Integer fetchOne = queryFactory
 			.selectOne()
 			.from(question)
+			.leftJoin(question.schedule, schedule).fetchJoin()
 			.where(
 				eqDirectorId(condition.getDirectorId()),
 				eqQuestionerId(condition.getQuestionerId()),
@@ -84,6 +87,6 @@ public class QuestionRepositoryAdapter implements QuestionRepository {
 	}
 
 	private BooleanExpression eqStartTime(LocalDateTime startTime) {
-		return startTime == null ? null : question.schedule.startTime.eq(startTime);
+		return startTime == null ? null : schedule.startTime.eq(startTime);
 	}
 }

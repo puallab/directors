@@ -1,8 +1,8 @@
 package com.directors.application.schedule;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -31,23 +31,18 @@ public class ScheduleService {
 	public void open(String userId, List<LocalDateTime> startTimeList) {
 		User user = userRepository.findById(userId).orElseThrow(() -> new NoSuchUserException(userId));
 
-		List<Schedule> list = new ArrayList<>();
-		for (LocalDateTime startTime : startTimeList) {
-			Schedule schedule = scheduleRepository.findByStartTimeAndUserId(startTime, userId)
-				.orElse(Schedule.of(startTime, ScheduleStatus.OPENED, user));
+		List<Schedule> list = startTimeList.stream()
+			.map(startTime -> {
+				scheduleRepository.findByStartTimeAndUserId(startTime, userId)
+					.ifPresent(schedule -> {
+						checkQuestionForChangeSchedule(userId, startTime, QuestionStatus.CHATTING);
 
-			boolean isNewSchedule = schedule.isNewSchedule();
+						schedule.closeSchedule();
+					});
 
-			if (isNewSchedule) {
-				list.add(schedule);
-				continue;
-			}
-			//해당시간에 예약중인 약속이 존재하는 경우 예외 발생시켜야함.
-			//받은 질문중 해당 시간에 question 상태가 chatting인게 있는지 확인
-			checkQuestionForChangeSchedule(userId, startTime, QuestionStatus.CHATTING);
-
-			schedule.openSchedule();
-		}
+				return Schedule.of(startTime, ScheduleStatus.OPENED, user);
+			})
+			.collect(Collectors.toList());
 
 		scheduleRepository.saveAll(list);
 	}
@@ -55,22 +50,19 @@ public class ScheduleService {
 	@Transactional
 	public void close(String userId, List<LocalDateTime> startTimeList) {
 		User user = userRepository.findById(userId).orElseThrow(() -> new NoSuchUserException(userId));
-		List<Schedule> list = new ArrayList<>();
-		for (LocalDateTime startTime : startTimeList) {
-			Schedule schedule = scheduleRepository.findByStartTimeAndUserId(startTime, userId)
-				.orElse(Schedule.of(startTime, ScheduleStatus.CLOSED, user));
 
-			boolean isNewSchedule = schedule.isNewSchedule();
-			if (isNewSchedule) {
-				list.add(schedule);
-				continue;
-			}
+		List<Schedule> list = startTimeList.stream()
+			.map(startTime -> {
+				scheduleRepository.findByStartTimeAndUserId(startTime, userId)
+					.ifPresent(schedule -> {
+						checkQuestionForChangeSchedule(userId, startTime, QuestionStatus.WAITING);
 
-			checkQuestionForChangeSchedule(userId, startTime, QuestionStatus.WAITING);
+						schedule.closeSchedule();
+					});
 
-			schedule.closeSchedule();
-			//scheduleRepository.save(schedule);
-		}
+				return Schedule.of(startTime, ScheduleStatus.CLOSED, user);
+			})
+			.collect(Collectors.toList());
 
 		scheduleRepository.saveAll(list);
 	}
