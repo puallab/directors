@@ -34,6 +34,12 @@ public class QuestionRepositoryAdapter implements QuestionRepository {
 	}
 
 	@Override
+	public List<Question> findByQuestionerIdAndDirectorIdAndStatus(String questionerId, String directorId,
+		QuestionStatus status) {
+		return jpaQuestionRepository.findByQuestionerIdAndDirectorIdAndStatus(questionerId, directorId, status);
+	}
+
+	@Override
 	public Question save(Question question) {
 		return jpaQuestionRepository.save(question);
 	}
@@ -63,7 +69,7 @@ public class QuestionRepositoryAdapter implements QuestionRepository {
 		Integer fetchOne = queryFactory
 			.selectOne()
 			.from(question)
-			.leftJoin(question.schedule, schedule).fetchJoin()
+			.innerJoin(question.schedule, schedule)
 			.where(
 				eqDirectorId(condition.getDirectorId()),
 				eqQuestionerId(condition.getQuestionerId()),

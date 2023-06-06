@@ -55,7 +55,16 @@ public class QuestionService {
 	@Transactional
 	public void create(CreateQuestionRequest request, String questionerId) {
 		//시간이 올바른지 확인, userId로부터 schedule 가져오기.
+		long beforeTime = System.currentTimeMillis(); //코드 실행 전에 시간 받아오기
+
+		//실험할 코드 추가
 		Schedule schedule = validateTime(request.getStartTime(), request.getDirectorId());
+
+		long afterTime = System.currentTimeMillis(); // 코드 실행 후에 시간 받아오기
+		long secDiffTime = (afterTime - beforeTime); //두 시간에 차 계산
+		System.out.println("validate Schedule " + secDiffTime);
+
+		beforeTime = System.currentTimeMillis();
 
 		//동일한 디렉터에게 WAITTING 상태의 질문이 있다면 질문 불가능
 		boolean isExists = questionRepository.existsQuestion(
@@ -68,6 +77,11 @@ public class QuestionService {
 			throw new QuestionDuplicateException(QuestionDuplicateException.DUPLICATED, questionerId);
 		}
 
+		afterTime = System.currentTimeMillis();
+		secDiffTime = (afterTime - beforeTime); //두 시간에 차 계산
+		System.out.println("######exists question " + secDiffTime);
+
+		beforeTime = System.currentTimeMillis();
 		User director = getUserById(request.getDirectorId());
 		User questioner = getUserById(questionerId);
 
@@ -76,6 +90,10 @@ public class QuestionService {
 		Question question = request.toQuestion(questioner, director, schedule);
 
 		questionRepository.save(question);
+
+		afterTime = System.currentTimeMillis();
+		secDiffTime = (afterTime - beforeTime); //두 시간에 차 계산
+		System.out.println("###### add exists question " + secDiffTime);
 	}
 
 	@Transactional

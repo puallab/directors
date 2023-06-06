@@ -11,6 +11,9 @@ public interface QuestionRepository {
 
 	List<Question> findByQuestionerId(String questionerId);
 
+	List<Question> findByQuestionerIdAndDirectorIdAndStatus(String questionerId, String directorId,
+		QuestionStatus status);
+
 	Question save(Question question);
 
 	Optional<Question> findById(Long id);

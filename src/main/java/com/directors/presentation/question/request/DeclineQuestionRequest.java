@@ -8,5 +8,5 @@ import lombok.Getter;
 @AllArgsConstructor
 public class DeclineQuestionRequest {
 	@NotBlank
-	private String Comment;
+	private String comment;
 }

@@ -37,7 +37,7 @@ public class ScheduleService {
 					.ifPresent(schedule -> {
 						checkQuestionForChangeSchedule(userId, startTime, QuestionStatus.CHATTING);
 
-						schedule.closeSchedule();
+						schedule.openSchedule();
 					});
 
 				return Schedule.of(startTime, ScheduleStatus.OPENED, user);

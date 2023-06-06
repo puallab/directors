@@ -6,7 +6,7 @@ import lombok.Getter;
 
 @Getter
 public class ClosedScheduleException extends RuntimeException {
-	public static final String RESERVED_SCHEDULE = "해당 시간에 이미 예약한 사람이 있습니다.";
+	public static final String RESERVED_SCHEDULE = "디렉터가 허용한 시간대가 아닙니다.";
 	private String userId;
 	private String startTime;
 
